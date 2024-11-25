@@ -1,0 +1,12 @@
+transparent, '.': '#ffffff'
+yellow, 'y': '#f9df6d'
+green, 'g': '#a0c35a'
+blue, 'b': '#b0c4ef'
+purple, 'p': '#ba81c5'
+
+......
+.yyyy.
+.gggg.
+.bbbb.
+.pppp.
+......

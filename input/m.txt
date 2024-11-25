@@ -1,0 +1,10 @@
+transparent, '.': '#ffffff'
+green, 'g': '#a0c35a'
+gray, '1': '#cccccc'
+purple, 'p': 'rgb(113, 61, 90)'
+blue, 'b': '#b0c4ef'
+
+.g.g.
+g.g.g
+g...g
+g...g
