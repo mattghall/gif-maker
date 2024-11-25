@@ -1,12 +1,11 @@
-transparent, '.': '#ffffff'
+speed: 10
+transparent, '.': 'rgba(0,0,0,0)'
 yellow, 'y': '#f9df6d'
 green, 'g': '#a0c35a'
 blue, 'b': '#b0c4ef'
 purple, 'p': '#ba81c5'
 
-......
-.yyyy.
-.gggg.
-.bbbb.
-.pppp.
-......
+yyyy
+gggg
+bbbb
+pppp

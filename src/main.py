@@ -1,4 +1,5 @@
 import sys
+import re
 from PIL import Image, ImageDraw
 import json
 
@@ -18,72 +19,62 @@ def parse_input_file(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
+    speed = 10  # Default speed
     color_map = {}
     ascii_art = []
     parsing_colors = True
 
     for line in lines:
         line = line.strip()
+        if not line:
+            parsing_colors = False
+            continue
+
         if parsing_colors:
-            if line == '':
-                parsing_colors = False
-                continue
-            parts = line.split(':')
-            namePart = parts[0].split(',')
-            name = namePart[0].strip()
-            key = namePart[1].strip().strip("'")
-            color = convert_to_rgb(parts[1].strip().strip("'"))
-            color_map[key] = (name, color)
-            print(f"Adding color {name} with key {key} and color {color}")
+            if line.startswith('speed:'):
+                speed = int(line.split(':')[1].strip())
+            else:
+                match = re.match(r"(\w+),\s*'(\w)':\s*'(.+)'", line)
+                if match:
+                    name, char, color = match.groups()
+                    color_map[char] = (name, color)
         else:
             ascii_art.append(line)
 
-    print("Color Map:", color_map)
-    print("ASCII Art:", ascii_art)
-    return color_map, ascii_art
+    return speed, color_map, ascii_art
 
 def create_gif(color_map, ascii_art, output_path, box_size=20, fps=10, transparent_key=None):
     frames = []
     width = len(ascii_art[0]) * box_size
     height = len(ascii_art) * box_size
 
-    transparent_color = color_map.get(transparent_key, (None, (255, 255, 255)))[1] if transparent_key else None
+    transparent_color = color_map.get(transparent_key, (None, (255, 255, 255, 0)))[1] if transparent_key else (255, 255, 255, 0)
 
-    for frame in range(1):  # Only iterate through one frame for now
-        img = Image.new('RGB', (width, height), (255, 255, 255))
-        draw = ImageDraw.Draw(img)
+    img = Image.new('RGBA', (width, height), transparent_color)
+    draw = ImageDraw.Draw(img)
 
-        for y, row in enumerate(ascii_art):
-            for x, char in enumerate(row):
-                color_name, color = color_map.get(char, ('default', (255, 255, 255)))
-                if color == transparent_color:
-                    continue  # Skip drawing for transparent pixels
-                print(f"Drawing {char} at ({x}, {y}) with color {color_name}")
-                draw.rectangle(
-                    [x * box_size, y * box_size, (x + 1) * box_size, (y + 1) * box_size],
-                    fill=color
-                )
+    for y, row in enumerate(ascii_art):
+        for x, char in enumerate(row):
+            color_name, color = color_map.get(char, ('default', (255, 255, 255, 0)))
+            if color == transparent_color:
+                continue  # Skip drawing for transparent pixels
+            print(f"Drawing {char} at ({x}, {y}) with color {color_name}")
+            draw.rectangle(
+                [x * box_size, y * box_size, (x + 1) * box_size, (y + 1) * box_size],
+                fill=color
+            )
+            # Append a copy of the current image to frames
+            frames.append(img.copy())
 
-        # Convert to palette-based image for GIF
-        frame = img.convert('P', palette=Image.ADAPTIVE)
-        # Set the transparency color index
-        if transparent_color:
-            palette = frame.getpalette()
-            transparent_index = palette.index(transparent_color[0]) // 3
-            frame.info['transparency'] = transparent_index
+    # Draw 1px white boxes in the outer corners to ensure the full image is rendered
+    draw.rectangle([0, 0, 1, 1], fill=(255, 255, 255, 255))
+    draw.rectangle([width-1, 0, width, 1], fill=(255, 255, 255, 255))
+    draw.rectangle([0, height-1, 1, height], fill=(255, 255, 255, 255))
+    draw.rectangle([width-1, height-1, width, height], fill=(255, 255, 255, 255))
+    frames.append(img.copy())
 
-        frames.append(frame)
-
-    # Save the GIF with transparency
-    frames[0].save(
-        output_path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=1000 // fps,
-        loop=0,
-        transparency=frames[0].info.get('transparency', 0),
-    )
-
+    # Save the frames as a GIF with transparency
+    frames[0].save(output_path, save_all=True, append_images=frames[1:], duration=1000//fps, loop=0, transparency=0)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -96,5 +87,6 @@ if __name__ == "__main__":
     print(f"Input File: {input_file}")
     print(f"Output GIF: {output_gif}")
 
-    color_map, ascii_art = parse_input_file(input_file)
-    create_gif(color_map, ascii_art, output_gif)
+    speed, color_map, ascii_art = parse_input_file(input_file)
+    print("Parsed Color Map:", color_map)
+    create_gif(color_map, ascii_art, output_gif, fps=speed)
